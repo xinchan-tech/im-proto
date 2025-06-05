@@ -63,6 +63,7 @@ func (r *RecvPacket) Reset() {
 	r.ChannelType = 0
 	r.Topic = ""
 	r.FromUID = ""
+	r.RelateUser = ""
 	r.Payload = nil
 	r.ClientSeq = 0
 }
@@ -97,6 +98,7 @@ func (r *RecvPacket) VerityBytes(buf *bytebufferpool.ByteBuffer) {
 	buf.B = append(buf.B, r.ClientMsgNo...)
 	buf.B = strconv.AppendInt(buf.B, int64(r.Timestamp), 10)
 	buf.B = append(buf.B, r.FromUID...)
+	buf.B = append(buf.B, r.RelateUser...)
 	buf.B = append(buf.B, r.ChannelID...)
 	buf.B = strconv.AppendInt(buf.B, int64(r.ChannelType), 10)
 	buf.B = append(buf.B, r.Payload...)
@@ -124,6 +126,10 @@ func decodeRecv(frame Frame, data []byte, version uint8) (Frame, error) {
 	// 发送者
 	if recvPacket.FromUID, err = dec.String(); err != nil {
 		return nil, errors.Wrap(err, "解码FromUID失败！")
+	}
+	// 关联用户
+	if recvPacket.RelateUser, err = dec.String(); err != nil {
+		return nil, errors.Wrap(err, "解码RelateUser失败！")
 	}
 	// 频道ID
 	if recvPacket.ChannelID, err = dec.String(); err != nil {
@@ -206,6 +212,8 @@ func encodeRecv(recvPacket *RecvPacket, enc *Encoder, version uint8) error {
 	enc.WriteString(recvPacket.MsgKey)
 	// 发送者
 	enc.WriteString(recvPacket.FromUID)
+	// 关联用户
+	enc.WriteString(recvPacket.RelateUser)
 	// 频道ID
 	enc.WriteString(recvPacket.ChannelID)
 	// 频道类型
@@ -242,6 +250,7 @@ func encodeRecvSize(packet *RecvPacket, version uint8) int {
 
 	size += (len(packet.MsgKey) + StringFixLenByteSize)
 	size += (len(packet.FromUID) + StringFixLenByteSize)
+	size += (len(packet.RelateUser) + StringFixLenByteSize)
 	size += (len(packet.ChannelID) + StringFixLenByteSize)
 	size += ChannelTypeByteSize
 	if version >= 3 {
